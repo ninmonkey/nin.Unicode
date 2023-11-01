@@ -1,0 +1,12 @@
+{ // created: 2023-11-01
+	"folders": [
+        {
+            "path": "."
+        },
+        {
+            "name": "UCD specs",
+            "path": "../../../../../datasource/unicode.specs/extract/UCD"
+        }
+    ],
+    "settings": {}
+}
