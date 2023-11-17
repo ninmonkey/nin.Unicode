@@ -7,11 +7,28 @@ using namespace System.Collections.Generic
 }
 # [string]$script:Bv_BinInvokeHistory = ''
 # h:\data\client_bdg\2023.10-bdg s3 files sync proto
+function Assert.NotTrueNull {
+    <#
+    .EXAMPLE
+        Assert.NotTrueNull ''
+    .EXAMPLE
+        Assert.NotTrueNull $foo 'Should never occur unless X'
+    #>
+    param(
+        $InputObject,
+        [string]$Reason = ''
+    )
+    if($null -eq $InputObject ) {
+        throw "Assert.NotTrueNull failed: $Reason !"
+    }
+}
 function nUni.SpecsFile.ParseHeader {
 # function nUni.SpecsFile.GetHeader {
     param(
         [string]$Path
     )
+    # throw NotImplemented exception
+    throw 'NotImplementedException'
 
     $info = @{}
     return $info
@@ -70,7 +87,74 @@ function nUni.Write-DimText {
     #     | New-Text @colorDefault
     #     | % ToString
 }
+function nUni.New-Rune {
+    [CmdletBinding(DefaultParameterSetName = 'FromInt')]
+    [Alias(
+        'nUni.New-Char',
+        'uni.New-Rune'
+    )]
+    [OutputType('Text.Rune', 'String')]
+    param(
+        [Alias('FromInt', 'FromNumber', 'Number')]
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'FromInt')]
+        $Codepoint,
 
+        [Alias('Name', 'Query')]
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'FromQuery')]
+        $FromName,
+
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'FromSurrogateChars')]
+        # [object] not char, I might accept fancy strings, coercing numbers
+        $HighSurrogate,
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory, Position = 1, ParameterSetName = 'FromSurrogateChars')]
+        # [object]not char, I might accept fancy strings, coercing numbers
+        $LowSurrogate,
+
+        # rather than a Rune
+        [switch]$AsString,
+        [switch]$AsPwshLiteral
+    )
+    if($PSBoundParameters.ContainsKey('Codepoint')) {
+        $rune = [Text.Rune]::new( $Codepoint )
+        # or for PS5 support, [Char]::ConvertFromUtf32( $Codepoint )
+        # I'm going pure Pwsh7 for this module, so that text can be fully used.
+    }
+    switch ($PSCmdlet.ParameterSetName) {
+        'FromInt' {
+            $rune = [Text.Rune]::new( $Codepoint )
+            break
+        }
+        'FromSurrogateChars' {
+            [Text.Rune]::new(
+                <# highSurrogate: #> [char]$highSurrogate,
+                <# lowSurrogate: #> [char]$lowSurrogate)
+            break
+        }
+
+        default {
+            throw "Unhandled ParameterSet: $($PSCmdlet.ParameterSetName)"
+        }
+    }
+
+    if( $AsString ) {
+        return $Rune.ToString()
+    }
+    IF( $AsPwshLiteral ) {
+        '`u{'
+        
+        '}'
+
+    }
+
+
+
+        return $Rune
+
+}
 function nUni.ResolveItem {
     <#
     .SYNOPSIS
@@ -90,7 +174,13 @@ function nUni.ResolveItem {
     }
     return Get-Item -ea 'stop' $Path # shouldn't error
 }
-
+function nUni.Find.UnicodeVersionNumbers {
+    # if( -not ())
+    # $GetAllVersionNumbersUrl = 'https://www.unicode.org/Public/'
+    # $response ??= iwr $GetAllVersionNumbersUrl
+    # $tables = PSParseHtml\ConvertFrom-HtmlTable -Content $response.Content
+    # $tables.Name -match '^\d+\.\d+\.\d+/'
+}
 function nUni.Init.AddPaths {
     <#
     .SYNOPSIS
@@ -102,6 +192,33 @@ function nUni.Init.AddPaths {
         UCD_Root = nUni.ResolveItem 'H:/datasource/unicode.specs/extract/UCD'
     }
 
+    $Urls = @{
+        'DownloadLatestDB' = 'https://www.unicode.org/Public/UCD/latest/'
+        'ByVersion' = @{
+            'v15.0' = 'https://www.unicode.org/Public/15.0.0/'
+            'v15.1' = 'https://www.unicode.org/Public/15.1.0/'
+        }
+
+    }
+
     return $Config
 }
 
+function nUni.BuildWebQuery {
+    param(
+
+    )
+
+    [List[Object]]$QueryMetada = @()
+
+    $Query.Metadata.Add(
+        [pscustomobject]@{
+            'ShortName' = 'Block'
+            'Description' = 'View an entire unicode block'
+            'ExampleFullUrl' = 'https://www.compart.com/en/unicode/block/U+0000'
+            'Template' = @{
+                Format = 'https://www.compart.com/en/unicode/block/U+{{}}'
+            }
+        }
+    )
+}
