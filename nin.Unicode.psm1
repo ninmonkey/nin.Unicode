@@ -232,6 +232,94 @@ function nUni.ResolveItem {
     }
     return Get-Item -ea 'stop' $Path # shouldn't error
 }
+
+class NamedRuneRecord {
+    [string]$Text = ''
+    [string[]]$Names = @()
+    [string]$ShortName
+    hidden [string]$Name # alias of ShortName
+    [string]$Description = ''
+
+    NamedRuneRecord( [hashtable]$Options ) {
+        $This.Text = ($Options)?.Text
+        $This.Names = ($Options)?.Names ?? @()
+        $This.Description = ($Options)?.Description ?? '<no description>'
+        $This.ShortName =
+            ($Options)?.ShortName ??
+            ($Options)?.Name ??
+            @( $this.Names )[0]
+
+        if( $null -eq $This.Text ) {
+            throw $(
+                "This.Text was null! Options = {0}" -f  @(  $Options |ConvertTo-Json -depth 2 ) )
+        }
+        $This.Name = $This.ShortName
+    }
+}
+
+function nUni.__SearchNamedMetadata {
+    [CmdletBinding()]
+    param(
+        [Alias('Query', 'Text', 'String')]
+        [Parameter()]
+        [string]$InputText
+    )
+
+    $all = nUni.__GetNamedUniMetadata
+    $found = $all | ?{
+        @( $_.Names ) -contains $InputText
+    }
+    if($found.count -gt 0) {
+        return $found
+    }
+    $found = $all | ?{
+        @( $_.Names ) -match $InputText
+    }
+    if($found.count -gt 0) {
+        return $found
+    }
+
+    'No matches found for: {0}' -f $InputText | Write-Verbose
+    return $found
+}
+
+function nUni.__GetNamedUniMetadata {
+    <#
+    .EXAMPLE
+        nUni.__GetNamedUniMetadata | ft -auto
+    .EXAMPLE
+        nUni.__GetNamedUniMetadata -KeysOnly | ft -auto
+    .LINK
+        https://en.wikipedia.org/wiki/C0_and_C1_control_codes#STX
+    #>
+    param(
+        # Return keys only
+        [switch]$KeysOnly
+    )
+    [List[Object]]$Items = @()
+
+    $Items.AddRange(@(
+        [NamedRuneRecord]@{
+            Text = Rune 0x0
+            Names = 'Null'
+        }
+        [NamedRuneRecord]@{
+            Text = Rune 0x1
+            Names = 'SOH', 'StartOf.Heading'
+            Description = 'In message transmission, delimits the start of a message header. The format of this header may be defined by an applicable protocol, such as IPTC 7901 for journalistic text transmission, and it is usually terminated by STX.[2] In Hadoop and FIX, it is often used as a field separator.'
+        }
+        [NamedRuneRecord]@{
+            Text = Rune 0x2
+            Names = 'STX', 'StartOf.Text'
+            Description = 'First character of message text, and may be used to terminate the message heading.'
+        }
+    ))
+    if( $KeysOnly ) {
+        return $Items.Names | Sort-object -unique
+    }
+    return $Items
+}
+
 function nUni.GetNamedText {
     <#
     .SYNOPSIS
