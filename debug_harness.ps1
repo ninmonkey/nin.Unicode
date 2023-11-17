@@ -20,4 +20,5 @@ $path1 = nUni.ResolveItem 'H:\datasource\unicode.specs\extract\UCD\emoji\emoji-d
 # nUni.SpecsFile.ParseHeader -path $Path1 -ea 'ignore'
 
 
+get-date | nUni.InspectRune|Ft -auto
 return

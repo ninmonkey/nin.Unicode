@@ -87,9 +87,71 @@ function nUni.Write-DimText {
     #     | New-Text @colorDefault
     #     | % ToString
 }
+
+class InspectRuneResult {
+    [string]$Hex = ''
+    [string]$Text = ''
+    hidden [string]$RawText = ''
+    [int]$Codepoint = 0x0
+
+    InspectRuneResult( [Text.Rune]$Rune ) {
+        if($null -eq $Rune) {
+            throw "NullParameter: Rune"
+        }
+        # Initialize the object
+        $this.Hex       =
+            Join-String -f '0x{0:x}' -in $Rune.Value
+        $this.Text      = $Rune.ToString() | fcc
+        $this.RawText   = $Rune.ToString()
+        $this.Codepoint = $Rune.Value
+    }
+}
+function nUni.InspectRune {
+    <#
+    .EXAMPLE
+        'asdf' | nUni.InspectRune
+        Get-Date | nUni.InspectRune
+    #>
+    param(
+        [AllowNull()]
+        [AllowEmptyString()]
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [Alias('Text', 'String', 'Rune')]
+        $InputObject
+    )
+    process {
+        if($Null -eq $InputObject) {
+            return
+        }
+        [bool]$typeIsOk = $InputObject -is 'string' -or
+            $InputObject -is 'char' -or
+            $InputObject -is 'Text.Rune'
+            $typeIsOk = $true
+
+        if(-not $typeIsOk) { return }
+        $Target = $InputObject.ToString()
+        $Target.EnumerateRunes() | %{
+            $Rune = $_
+            [InspectRuneResult]::new( $Rune )
+            # [pscustomobject]@{
+            #     PSTypeName = 'nin.Unicode.InspectResult'
+            #     Hex = Join-String -f '0x{0:x}' -in $_.Value
+            #     TextSafe = $_.ToString() | Format-ControlChar
+            #     # Text = $_.ToString()
+            #     Codepoint = $_.Value
+            #         # $_.Value.ToString('x')
+            #         # | Join-String -op '0x'
+            #     # Hex = $_.Value.ToString('x')
+            #     #     | Join-String -op '0x'
+            # }
+        }
+
+    }
+}
 function nUni.New-Rune {
     [CmdletBinding(DefaultParameterSetName = 'FromInt')]
     [Alias(
+        'Rune',
         'nUni.New-Char',
         'uni.New-Rune'
     )]
@@ -143,16 +205,15 @@ function nUni.New-Rune {
     if( $AsString ) {
         return $Rune.ToString()
     }
-    IF( $AsPwshLiteral ) {
-        '`u{'
-        
-        '}'
-
+    if( $AsPwshLiteral ) {
+        return @(
+            '"`u{'
+            $Rune.Value.ToString('x')
+            '}"'
+        ) -join ''
     }
 
-
-
-        return $Rune
+    return $Rune
 
 }
 function nUni.ResolveItem {
@@ -173,6 +234,41 @@ function nUni.ResolveItem {
         return $Path
     }
     return Get-Item -ea 'stop' $Path # shouldn't error
+}
+function nUni.GetNamedText {
+    <#
+    .SYNOPSIS
+        saved aliases that map directly to text or a sequence
+    #>
+    [Alias('Uni')]
+    [OutputType('string', 'System.Text.Rune')]
+    param(
+        [ArgumentCompletions(
+            'STX', 'StartOf.Text',
+            'ETX', 'EndOf.Text'
+        )]
+        [Alias('Name', 'Query')]
+        [Parameter(Mandatory, Position = 0)]
+        $InputName,
+
+        [Alias('AsString', 'String', 'ToString', 'Str')]
+        [switch]$AsText
+
+    )
+    $mapping = @{
+        Null = [Text.Rune]::new( 0x2400 + 0x0 )
+        STX  = [Text.Rune]::new( 0x2400 + 0x2 )
+    }
+    $Mapping.'StartOf.Text' = $Mapping.STX
+    $Mapping.'EndOf.Text' = $Mapping.ETX
+
+    if(  -not $Mapping.ContainsKey($InputName) ) {
+        throw "ExactMatchNotFound: $_"
+    }
+
+    $found = $Mapping[ $InputName ]
+    if( $AsText ) { return $Found.ToString() }
+    return $found
 }
 function nUni.Find.UnicodeVersionNumbers {
     # if( -not ())

@@ -19,18 +19,34 @@ describe 'New-Rune' {
                 Expected = [Text.Rune]::new( 0x2400 )
             }
         ) {
-            try {
-                nUni.New-Rune -FromInt $In
+
+            nUni.New-Rune -FromInt $In
                 | Should -BeExactly $Expected
-            }
-            catch {
-                throw "Failed with input: $($_.Exception.Message)"
-            }
         }
     }
-    context 'FromSurrogate' -Pending -ForEach @() {
-        it 'test nyi' {
-            # Set-ItRes
+
+    # context 'FromSurrogate' -Pending -ForEach @() {
+    #     it 'test nyi' {
+    #         # Set-ItRes
+    #     }
+    # }
+}
+
+describe 'nUni.GetNamedText' {
+    it '<In> Is <Expected>' -ForEach @(
+            @{
+                In = 'STX'
+                Expected = [Text.Rune]::new( 0x0 ).ToString()
+            }
+            @{
+                In = 'STX'
+                AsText = $True
+                Expected = '␂'
+            }
+        ) {
+
+            nUni.GetNamedText -InputName $In -AsText:$AsText
+                | Should -BeExactly '␂'
+
         }
-    }
 }

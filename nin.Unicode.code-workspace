@@ -8,5 +8,7 @@
             "path": "../../../../../datasource/unicode.specs/extract/UCD"
         }
     ],
-    "settings": {}
+    "settings": {
+        "powershell.cwd": "nin.Unicode"
+    }
 }
