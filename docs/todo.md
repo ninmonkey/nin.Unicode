@@ -1,6 +1,7 @@
 
 ## ** typedata**
 
+- `nUni.Named` should use argument completer with tooltips
 - rewrite `InspectRuneResult` as `Update-FormatData`
 
 - `Rune.Category` from [GetUnicodeCategory](https://learn.microsoft.com/en-us/dotnet/api/system.char.getunicodecategory?view=net-8.0)

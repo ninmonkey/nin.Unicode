@@ -188,7 +188,7 @@ function nUni.New-Rune {
             break
         }
         'FromSurrogateChars' {
-            [Text.Rune]::new(
+            $rune = [Text.Rune]::new(
                 <# highSurrogate: #> [char]$highSurrogate,
                 <# lowSurrogate: #> [char]$lowSurrogate)
             break
@@ -251,6 +251,8 @@ function nUni.GetNamedText {
     param(
         [ArgumentCompletions(
             'STX', 'StartOf.Text',
+            'STX.Symbol', 'StartOf.Text.Symbol',
+
             'ETX', 'EndOf.Text'
         )]
         [Alias('Name', 'Query')]
@@ -265,12 +267,25 @@ function nUni.GetNamedText {
         $AsText = $True
     }
     $mapping = @{
-        Null = [Text.Rune]::new( 0x2400 + 0x0 )
-        STX  = [Text.Rune]::new( 0x2400 + 0x2 )
-        
+        # wait,
+        'Null'       = [Text.Rune]::new( 0x0 )
+        'Null.Symbol' = [Text.Rune]::new( 0x2400 + 0x0 )
+
+        'STX' = [Text.Rune]::new( 0x2 )
+        'STX.Symbol' = [Text.Rune]::new( 0x2400 + 0x2 )
+
+        'ETX' = [Text.Rune]::new( 0x3 )
+        'ETX.Symbol' = [Text.Rune]::new( 0x2400 + 0x3 )
+
+        # 'SOH' = [Text.Rune]::new( 0x3 )
+        # 'StartOf.Heading.Symbol' = [Text.Rune]::new( 0x2400 + 0x3 )
+
     }
-    $Mapping.'StartOf.Text' = $Mapping.STX
-    $Mapping.'EndOf.Text' = $Mapping.ETX
+    $Mapping.'StartOf.Text' = $Mapping.'STX'
+    $Mapping.'StartOf.Text.Symbol' = $Mapping.'STX.Symbol'
+
+    $Mapping.'EndOf.Text' = $Mapping.'ETX'
+    $Mapping.'EndOf.Text.Symbol' = $Mapping.'ETX.Symbol'
 
     if(  -not $Mapping.ContainsKey($InputName) ) {
         throw "ExactMatchNotFound: $_"
@@ -286,6 +301,7 @@ function nUni.Find.UnicodeVersionNumbers {
     # $response ??= iwr $GetAllVersionNumbersUrl
     # $tables = PSParseHtml\ConvertFrom-HtmlTable -Content $response.Content
     # $tables.Name -match '^\d+\.\d+\.\d+/'
+    throw 'parse web response for dynamic listing'
 }
 function nUni.Init.AddPaths {
     <#
@@ -311,6 +327,10 @@ function nUni.Init.AddPaths {
 }
 
 function nUni.BuildWebQuery {
+    [Alias(
+        'Uni.Web',
+        'Uni.WebQuery'
+    )]
     param(
 
     )
@@ -319,6 +339,7 @@ function nUni.BuildWebQuery {
 
     $Query.Metadata.Add(
         [pscustomobject]@{
+            PSTypeName = 'nin.uni.UrlTemplate'
             'ShortName' = 'Block'
             'Description' = 'View an entire unicode block'
             'ExampleFullUrl' = 'https://www.compart.com/en/unicode/block/U+0000'
@@ -327,4 +348,6 @@ function nUni.BuildWebQuery {
             }
         }
     )
+
+    return $Query
 }
