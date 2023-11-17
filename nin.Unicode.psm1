@@ -48,7 +48,10 @@ function nUni.Write-DimText {
         > 'a'..'e' | Dotils.Write-DimText  |  Join.UL
     #>
     [OutputType('String')]
-    [Alias('nUni.DimText')]
+    [Alias(
+        'nUni.DimText',
+        'uni.Dim'
+    )]
     param(
         # write host explicitly
         [switch]$PSHost
@@ -112,11 +115,16 @@ function nUni.InspectRune {
         'asdf' | nUni.InspectRune
         Get-Date | nUni.InspectRune
     #>
+    [Alias(
+        'Inspect.Rune'
+    )]
     param(
         [AllowNull()]
         [AllowEmptyString()]
         [Parameter(Mandatory, ValueFromPipeline)]
-        [Alias('Text', 'String', 'Rune')]
+        [Alias(
+            'Text', 'String', 'Rune'
+        )]
         $InputObject
     )
     process {
@@ -129,21 +137,10 @@ function nUni.InspectRune {
             $typeIsOk = $true
 
         if(-not $typeIsOk) { return }
-        $Target = $InputObject.ToString()
+        $Target = ($InputObject)?.ToString() ?? '␀'
         $Target.EnumerateRunes() | %{
             $Rune = $_
             [InspectRuneResult]::new( $Rune )
-            # [pscustomobject]@{
-            #     PSTypeName = 'nin.Unicode.InspectResult'
-            #     Hex = Join-String -f '0x{0:x}' -in $_.Value
-            #     TextSafe = $_.ToString() | Format-ControlChar
-            #     # Text = $_.ToString()
-            #     Codepoint = $_.Value
-            #         # $_.Value.ToString('x')
-            #         # | Join-String -op '0x'
-            #     # Hex = $_.Value.ToString('x')
-            #     #     | Join-String -op '0x'
-            # }
         }
 
     }
@@ -239,8 +236,17 @@ function nUni.GetNamedText {
     <#
     .SYNOPSIS
         saved aliases that map directly to text or a sequence
+    .description
+        aliass 'Uni.Str' and 'UniStr' automatically add -AsText as a default arg
+
     #>
-    [Alias('Uni')]
+    [Alias(
+        'nUni.Named',
+        'nUni.Query',
+        'Uni',
+        'Uni.Str',
+        'UniStr'
+    )]
     [OutputType('string', 'System.Text.Rune')]
     param(
         [ArgumentCompletions(
@@ -255,9 +261,13 @@ function nUni.GetNamedText {
         [switch]$AsText
 
     )
+    if($PSCmdlet.MyInvocation.InvocationName -match 'Uni.*Str') {
+        $AsText = $True
+    }
     $mapping = @{
         Null = [Text.Rune]::new( 0x2400 + 0x0 )
         STX  = [Text.Rune]::new( 0x2400 + 0x2 )
+        
     }
     $Mapping.'StartOf.Text' = $Mapping.STX
     $Mapping.'EndOf.Text' = $Mapping.ETX
