@@ -343,9 +343,10 @@ function nUni.__GetNamedUniMetadata {
     #>
     param(
         # Return keys only
-        [switch]$KeysOnly,
-        [Alias('Completions', 'As.Completion')]
-        [switch]$AsCompletionResult
+        [switch]$KeysOnly
+        # ,
+        # [Alias('Completions', 'As.Completion')]
+        # [switch]$AsCompletionResult
     )
     [List[Object]]$Items = @()
 
@@ -465,7 +466,7 @@ class NamedUnicodeCompleter : IArgumentCompleter {
         [CommandAst] $commandAst,
         [IDictionary] $fakeBoundParameters) {
 
-        [List[CompletionResult]]$resultList = @()
+        # [List[CompletionResult]]$resultList = @()
         # $DtNow = [datetime]::Now
         # $DtoNow = [DateTimeOffset]::Now
         # [bool]$NeverFilterResults = $false
@@ -473,77 +474,11 @@ class NamedUnicodeCompleter : IArgumentCompleter {
             # IncludeAllDateTimePatterns = $true
             # IncludeFromDateTimeFormatInfo = $true
         }
-
-
-
-        # [Globalization.DateTimeFormatInfo]$DtFmtInfo = (Get-Culture).DateTimeFormat
-
-
-        # if($script:moduleConfig.SuperVerbose) {
-        #         '.'
-        #         | WriteJsonLog -t 'NamedUnicodeCompleter::CompleteArgument'
-        # }
-
-
-        # if( $This.IncludeFromDateTimeFormatInfo) {
-        #     $DtFmtInfo | Find-Member -MemberType Property *Pattern* | % Name | %{
-        #         $curMemberName = $_
-        #         $PatternName = $curMemberName -replace 'Pattern$', ''
-        #         $curFStr = $DtFmtInfo.$PatternName
-        #         $tlate = [NamedRuneRecord]@{
-        #             # CompletionName = $PatternName
-        #             # Delim = ' ⁞ '
-        #             # Fstr = $curFStr
-        #             # ShortName = $patternName
-        #             # BasicName = ''
-        #             # Description = @(
-        #             #     'Culture.DateTimeFormatInfo.{0}' -f $curMemberName
-        #             # ) -join "`n"
-        #         }
-        #         $resultList.Add( $tlate.AsCompletionResult() )
-
-        #         $tlate | WriteJsonLog -Text 'NamedUnicodeCompleter::CompleteArgument 🐒'
-        #     }
-        # }
-
-        #   # $DtFmtInfo.GetAllDateTimePatterns()
-        # if( -not $This.ExcludeDateTimeFormatInfoPatterns ) {
-        #     foreach($fstr in $DtFmtInfo.GetAllDateTimePatterns()) {
-        #         $tlate = [NamedRuneRecord]@{
-        #             CompletionName = $Fstr
-        #             Delim = ' ⁞ '
-        #             Fstr = $fstr
-        #             ShortName = ''
-        #             BasicName = ''
-        #             Description = @(
-        #                 'From: DtFmtInfo.GetAllDateTimePatterns()'
-        #             ) -join "`n"
-        #         }
-        #         $resultList.Add( $tlate.AsCompletionResult() )
-        #     }
-        # }
-
-
-
-
-
-
-
-
-
-
-        #     # New-TypeWriterCompletionResult -Text 'LongDate' -listItemText 'LongDate2' -resultType Text -toolTip 'LongDate (default)'
-        #     # New-TypeWriterCompletionResult -Text 'ShortDate' -listItemText 'ShortDate2' -resultType Text -toolTip 'ShortDate (default)'
-        #     #
-        # 'next: filter results?: =  {0}' -f $NeverFilterResults
-        #     | out-host
-
-
-        # if($NeverFilterResults) {
-        #     return $resultList
-        #  }
-
-        return $ResultList
+        [List[CompletionResult]]$found = @(
+            nUni.__SearchNamedMetadata -InputText ''
+                | % AsCompletionResult
+            )
+        return $found
     }
 
 }
