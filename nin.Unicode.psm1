@@ -1,6 +1,18 @@
 using namespace System.Collections.Generic
+using namespace System.Collections
 using namespace System.Management.Automation
+using namespace System.Management.Automation.Language
 
+$script:moduleConfig = @{
+    hardPath = Join-Path 'g:\temp' -ChildPath '2023_11_13' 'nin.Unicode.log'
+    SuperVerbose = $true
+}
+# New-Item -ItemType File -Path (Join-Path 'g:\temp' -ChildPath '2023_11_13' 'ArgumentCompleter.log') -Force
+if( -not (Test-Path $moduleConfig.hardPath) ) {
+    New-Item -ItemType File -Path $moduleConfig.hardPath -Force
+}
+$ModuleConfig.hardPath | Join-String -f 'Using Log: {0}' | write-host -BackgroundColor 'darkred'
+$script:moduleConfig.SuperVerbose | Join-String -f 'using $ModuleConfig.SuperVerbose = {0}' | write-host -back 'darkred'
 
 # [Collections.Generic.List[Object]]$script:Bv_LastBinArgs = @()
 
@@ -359,6 +371,184 @@ function nUni.__GetNamedUniMetadata {
     return $Items
 }
 
+function WriteJsonLog {
+    param(
+        # [ALias('.Log')]
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [object[]]$InputObject,
+
+        [Alias('Line', 'Message')]
+        [string]$Text,
+
+        [switch]$PassThru
+    )
+    begin {
+        [List[Object]]$Items = @()
+    }
+    process {
+        $Items.AddRange(@(
+            $InputObject ))
+    }
+    end {
+        if( -not $script:moduleConfig.SuperVerbose) {
+            return
+        }
+        $Now = [Datetime]::Now
+        $Data =
+            $items | ConvertTo-Json -Depth 2
+
+        # $logLine =
+            # Join-String -inp @( $Data )  -op 'JSON:{ ' -os ' }:JSON'
+            #     | Join-String -op "[$Now] " -sep ' '
+        $logLine =
+            $Data
+                | Join-String -op 'JSON:{ ' -os ' }:JSON'
+                | Join-String -op "${Text} "
+                | Join-String -op "[$Now] " -sep ' '
+
+        Add-Content -Path $moduleConfig.hardPath -Value $logLine -PassThru:$PassThru
+    }
+}
+
+
+class NamedUnicodeCompleter : IArgumentCompleter {
+
+    # hidden [hashtable]$Options = @{}
+    # [bool]$ExcludeDateTimeFormatInfoPatterns = $false
+    # [bool]$IncludeFromDateTimeFormatInfo = $true
+    # NamedUnicodeCompleter([int] $from, [int] $to, [int] $step) {
+    NamedUnicodeCompleter( ) {
+        $This.Options = @{
+            # ExcludeDateTimeFormatInfoPatterns = $true
+        }
+
+        $this.Options
+            | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
+    }
+    # NamedUnicodeCompleter( $options ) {
+    NamedUnicodeCompleter( $ExcludeDateTimeFormatInfoPatterns = $false ) {
+        $this.ExcludeDateTimeFormatInfoPatterns = $ExcludeDateTimeFormatInfoPatterns
+        $This.Options.ExcludeDateTimeFormatInfoPatterns = $ExcludeDateTimeFormatInfoPatterns
+
+        $this.Options
+            | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
+
+        $PSCommandPath | Join-String -op 'not finished: Exclude property is not implemented yet,  ' | write-warning
+
+        # $this.Options = $Options ?? @{}
+        # $Options
+            # | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
+        # if ($from -gt $to) {
+        #     throw [ArgumentOutOfRangeException]::new("from")
+        # }
+        # $this.From = $from
+        # $this.To = $to
+        # $this.Step = $step -lt 1 ? 1 : $step
+
+    }
+    <#
+    .example
+
+    > try.Named.Fstr yyyy'-'MM'-'dd'T'HH':'mm':'ssZ
+    GitHub.DateTimeOffset  ShortDate (Default)    LongDate (Default)
+
+        Git Dto ⁞ 2023-11-11T18:58:42Z
+        yyyy'-'MM'-'dd'T'HH':'mm':'ssZ
+        Github DateTimeZone
+        Github DateTimeOffset UTC
+    #>
+
+    [IEnumerable[CompletionResult]] CompleteArgument(
+        [string] $CommandName,
+        [string] $parameterName,
+        [string] $wordToComplete,
+        [CommandAst] $commandAst,
+        [IDictionary] $fakeBoundParameters) {
+
+        [List[CompletionResult]]$resultList = @()
+        # $DtNow = [datetime]::Now
+        # $DtoNow = [DateTimeOffset]::Now
+        # [bool]$NeverFilterResults = $false
+        $Config = @{
+            # IncludeAllDateTimePatterns = $true
+            # IncludeFromDateTimeFormatInfo = $true
+        }
+
+
+
+        # [Globalization.DateTimeFormatInfo]$DtFmtInfo = (Get-Culture).DateTimeFormat
+
+
+        # if($script:moduleConfig.SuperVerbose) {
+        #         '.'
+        #         | WriteJsonLog -t 'NamedUnicodeCompleter::CompleteArgument'
+        # }
+
+
+        # if( $This.IncludeFromDateTimeFormatInfo) {
+        #     $DtFmtInfo | Find-Member -MemberType Property *Pattern* | % Name | %{
+        #         $curMemberName = $_
+        #         $PatternName = $curMemberName -replace 'Pattern$', ''
+        #         $curFStr = $DtFmtInfo.$PatternName
+        #         $tlate = [NamedRuneRecord]@{
+        #             # CompletionName = $PatternName
+        #             # Delim = ' ⁞ '
+        #             # Fstr = $curFStr
+        #             # ShortName = $patternName
+        #             # BasicName = ''
+        #             # Description = @(
+        #             #     'Culture.DateTimeFormatInfo.{0}' -f $curMemberName
+        #             # ) -join "`n"
+        #         }
+        #         $resultList.Add( $tlate.AsCompletionResult() )
+
+        #         $tlate | WriteJsonLog -Text 'NamedUnicodeCompleter::CompleteArgument 🐒'
+        #     }
+        # }
+
+        #   # $DtFmtInfo.GetAllDateTimePatterns()
+        # if( -not $This.ExcludeDateTimeFormatInfoPatterns ) {
+        #     foreach($fstr in $DtFmtInfo.GetAllDateTimePatterns()) {
+        #         $tlate = [NamedRuneRecord]@{
+        #             CompletionName = $Fstr
+        #             Delim = ' ⁞ '
+        #             Fstr = $fstr
+        #             ShortName = ''
+        #             BasicName = ''
+        #             Description = @(
+        #                 'From: DtFmtInfo.GetAllDateTimePatterns()'
+        #             ) -join "`n"
+        #         }
+        #         $resultList.Add( $tlate.AsCompletionResult() )
+        #     }
+        # }
+
+
+
+
+
+
+
+
+
+
+        #     # New-TypeWriterCompletionResult -Text 'LongDate' -listItemText 'LongDate2' -resultType Text -toolTip 'LongDate (default)'
+        #     # New-TypeWriterCompletionResult -Text 'ShortDate' -listItemText 'ShortDate2' -resultType Text -toolTip 'ShortDate (default)'
+        #     #
+        # 'next: filter results?: =  {0}' -f $NeverFilterResults
+        #     | out-host
+
+
+        # if($NeverFilterResults) {
+        #     return $resultList
+        #  }
+
+        return $ResultList
+    }
+
+}
+
+
 function nUni.GetNamedText {
     <#
     .SYNOPSIS
@@ -478,3 +668,4 @@ function nUni.BuildWebQuery {
 
     return $Query
 }
+Get-Date | WriteJsonLog -Text 'Module::Initialized'
