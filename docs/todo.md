@@ -1,6 +1,7 @@
 
 ## ** typedata**
 
+- `nUni.GetNamedText -Name` should accept `[string[]]` and then return an array of those chars, separately, not as a joined string
 - `nUni.Named` should use argument completer with tooltips
 - rewrite `InspectRuneResult` as `Update-FormatData`
 

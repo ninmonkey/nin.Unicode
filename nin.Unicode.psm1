@@ -277,8 +277,15 @@ class NamedRuneRecord {
             "`n`n"
             $THis.Description
         ) -join ''
+
+        $toReplace = $This.ShortName, '_replace' -join ''
         $ce = [CompletionResult]::new(
-            <# completionText: #> $this.Text,
+            # <# completionText: #> $this.Text,
+            # # <# completionText: #> ( $this.Text | fcc ),
+
+
+            <# completionText: #> ( $this.ShortName ),
+            # <# completionText: #> ( $this.Text | fcc ),
             <# listItemText  : #> $this.ShortName,
             <# resultType    : #> ([CompletionResultType]::ParameterValue),
             <# toolTip       : #> $render )
@@ -356,6 +363,10 @@ function nUni.__GetNamedUniMetadata {
             Names = 'Null'
         }
         [NamedRuneRecord]@{
+            Text = Rune 0x2400
+            Names = 'Null.Symbol'
+        }
+        [NamedRuneRecord]@{
             Text = Rune 0x1
             Names = 'SOH', 'StartOf.Heading'
             Description = 'In message transmission, delimits the start of a message header. The format of this header may be defined by an applicable protocol, such as IPTC 7901 for journalistic text transmission, and it is usually terminated by STX.[2] In Hadoop and FIX, it is often used as a field separator.'
@@ -414,7 +425,9 @@ function WriteJsonLog {
 
 class NamedUnicodeCompleter : IArgumentCompleter {
 
-    # hidden [hashtable]$Options = @{}
+    hidden [hashtable]$Options = @{
+        CompleteAs = 'Name'
+    }
     # [bool]$ExcludeDateTimeFormatInfoPatterns = $false
     # [bool]$IncludeFromDateTimeFormatInfo = $true
     # NamedUnicodeCompleter([int] $from, [int] $to, [int] $step) {
@@ -427,10 +440,9 @@ class NamedUnicodeCompleter : IArgumentCompleter {
             | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
     }
     # NamedUnicodeCompleter( $options ) {
-    NamedUnicodeCompleter( $ExcludeDateTimeFormatInfoPatterns = $false ) {
-        $this.ExcludeDateTimeFormatInfoPatterns = $ExcludeDateTimeFormatInfoPatterns
-        $This.Options.ExcludeDateTimeFormatInfoPatterns = $ExcludeDateTimeFormatInfoPatterns
-
+    NamedUnicodeCompleter( $SomeParam = $false ) {
+        # $this.SomeParam = $SomeParam
+        $This.Options.SomeParam = $SomeParam
         $this.Options
             | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
 
@@ -483,6 +495,59 @@ class NamedUnicodeCompleter : IArgumentCompleter {
 
 }
 
+class NamedUnicodeCompletionsAttribute : ArgumentCompleterAttribute, IArgumentCompleterFactory {
+    <#
+    .example
+        Pwsh> [NamedUnicodeCompletionsAttribute]::new()
+        Pwsh> [NamedUnicodeCompletionsAttribute]::new( @{ 'stuff' = 'far' } )
+    #>
+    [hashtable]$Options = @{}
+    # [int] $From
+    # [int] $To
+    # [int] $Step
+
+    # NamedUnicodeCompletionsAttribute( $options[int] $from, [int] $to, [int] $step) {
+    NamedUnicodeCompletionsAttribute() {
+        $this.Options = @{
+            CompleteAs = 'Name'
+        }
+        $this.Options
+            | WriteJsonLog -Text  '🚀NamedUnicodeCompletionsAttribute::new()'
+    }
+    # NamedUnicodeCompletionsAttribute( $ExcludeDateTimeFormatInfoPatterns = $false ) {
+    NamedUnicodeCompletionsAttribute( [string]$CompleteAs = 'Name' ) {
+        # $this.Options = $Options ?? @{}
+        # $this.Options = $Options ?? @{
+        #     ExcludeDateTimeFormatInfoPatterns = $false
+        # }
+        $this.Options.CompleteAs = $CompleteAs
+
+        $this.Options
+            | WriteJsonLog -Text  '🚀NamedUnicodeCompletionsAttribute::new | completeAs'
+        # $this.Options.ExcludeDateTimeFormatInfoPatterns = $ExcludeDateTimeFormatInfoPatterns
+    }
+
+    [IArgumentCompleter] Create() {
+        # return [NamedUnicodeCompleter]::new($this.From, $this.To, $this.Step)
+        # return [NamedUnicodeCompleter]::new( @{} )
+
+        '🚀NamedUnicodeCompletionsAttribute..Create()'
+            | WriteJsonLog -PassThru
+            # | .Log -Passthru
+        $This.Options
+            | WriteJsonLog -PassThru
+
+        return [NamedUnicodeCompleter]::new()
+        # if( $This.Options.ExcludeDateTimeFormatInfoPatterns ) {
+        #     return [NamedUnicodeCompleter]::new( @{
+        #         ExcludeDateTimeFormatInfoPatterns = $This.Options.ExcludeDateTimeFormatInfoPatterns
+        #     } )
+        # } else {
+        #     return [NamedUnicodeCompleter]::new()
+        # }
+    }
+}
+
 
 function nUni.GetNamedText {
     <#
@@ -492,6 +557,7 @@ function nUni.GetNamedText {
         aliass 'Uni.Str' and 'UniStr' automatically add -AsText as a default arg
 
     #>
+    [CmdletBinding(DefaultParameterSetName='QueryAsName')]
     [Alias(
         'nUni.Named',
         'nUni.Query',
@@ -501,14 +567,22 @@ function nUni.GetNamedText {
     )]
     [OutputType('string', 'System.Text.Rune')]
     param(
-        [ArgumentCompletions(
-            'STX', 'StartOf.Text',
-            'STX.Symbol', 'StartOf.Text.Symbol',
+        # [ArgumentCompletions(
+        #     'STX', 'StartOf.Text',
+        #     'STX.Symbol', 'StartOf.Text.Symbol',
 
-            'ETX', 'EndOf.Text'
-        )]
+        #     'ETX', 'EndOf.Text'
+        # )]
+        [NamedUnicodeCompletionsAttribute( CompleteAs = 'Text')]
+        [Alias('Echo')]
+        [Parameter(Mandatory, Position = 0, ParameterSetName ='QueryAsEchoValue')]
+        [string]$InputRune,
+
+
+        [NamedUnicodeCompletionsAttribute( CompleteAs = 'ShortName' )]
         [Alias('Name', 'Query')]
-        [Parameter(Mandatory, Position = 0)]
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'QueryAsName')]
+        [string]
         $InputName,
 
         [Alias('AsString', 'String', 'ToString', 'Str')]
