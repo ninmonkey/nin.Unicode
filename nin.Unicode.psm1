@@ -1,4 +1,6 @@
 using namespace System.Collections.Generic
+using namespace System.Management.Automation
+
 
 # [Collections.Generic.List[Object]]$script:Bv_LastBinArgs = @()
 
@@ -236,7 +238,7 @@ function nUni.ResolveItem {
 class NamedRuneRecord {
     [string]$Text = ''
     [string[]]$Names = @()
-    [string]$ShortName
+    [string]$ShortName # future: convert to a ScriptProperty
     hidden [string]$Name # alias of ShortName
     [string]$Description = ''
 
@@ -255,9 +257,44 @@ class NamedRuneRecord {
         }
         $This.Name = $This.ShortName
     }
+    [CompletionResult] AsCompletionResult () {
+        [string]$render = @(
+            $This.ShortName
+            "`n"
+            $This.Names | Join-String -sep ', ' -op 'Aliases: '
+            "`n`n"
+            $THis.Description
+        ) -join ''
+        $ce = [CompletionResult]::new(
+            <# completionText: #> $this.Text,
+            <# listItemText  : #> $this.ShortName,
+            <# resultType    : #> ([CompletionResultType]::ParameterValue),
+            <# toolTip       : #> $render )
+        return $ce
+    }
+    [String] ToString() {
+        return '[NameText< Name: {0}, Aliases: {1} Codepoint: {2}>]' -f @(
+            $This.ShortName
+            $This.Names | Join-String -sep ' ' -SingleQuote -op ' [ ' -os ' ] '
+            $This.AsHexList()
+            # $This.Text.EnumerateRunes() | Join-String -sep ' ' -f '{0:x}' -sep
+            # $This.Text.EnumerateRunes() |  Join-String -sep ' ' -f '{0:x}' Value -op '[ ' -os ' ]'
+        )
+    }
+    [string] AsHexList () {
+        return ($This.Text)?.EnumerateRunes() |  Join-String -sep ' ' -f '{0:x}' Value -op '[ ' -os ' ]'
+    }
 }
 
 function nUni.__SearchNamedMetadata {
+    <#
+    .EXAMPLE
+    Pwsh> nUni.__GetNamedUniMetadata | Join-String -sep "`n"
+
+        [NameText< Name: Null, Aliases:  [ 'Null' ]  Codepoint: [ 0 ]>]
+        [NameText< Name: SOH, Aliases:  [ 'SOH' 'StartOf.Heading' ]  Codepoint: [ 1 ]>]
+        [NameText< Name: STX, Aliases:  [ 'STX' 'StartOf.Text' ]  Codepoint: [ 2 ]>]
+    #>
     [CmdletBinding()]
     param(
         [Alias('Query', 'Text', 'String')]
@@ -294,7 +331,9 @@ function nUni.__GetNamedUniMetadata {
     #>
     param(
         # Return keys only
-        [switch]$KeysOnly
+        [switch]$KeysOnly,
+        [Alias('Completions', 'As.Completion')]
+        [switch]$AsCompletionResult
     )
     [List[Object]]$Items = @()
 
