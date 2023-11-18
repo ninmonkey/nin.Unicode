@@ -376,6 +376,24 @@ function nUni.__GetNamedUniMetadata {
             Names = 'STX', 'StartOf.Text'
             Description = 'First character of message text, and may be used to terminate the message heading.'
         }
+        [NamedRuneRecord]@{
+            Text = Rune 0xa
+            Names = 'NL', 'NewLine', 'LF', 'LineFeed', 'Space.NL'
+            Description = 'newline'
+        }
+        [NamedRuneRecord]@{
+            Text = Rune 0xd
+            Names = 'CR', 'CarriageReturn', 'Space.CR'
+            Description = 'carriage return'
+        }
+        [NamedRuneRecord]@{
+            Text = @(
+                Rune 0xa
+                Rune 0xD
+            )
+            Names = 'CrLf', 'CarriageReturnLineFeed', 'Space.CrLf'
+            Description = 'carriage return'
+        }
     ))
     if( $KeysOnly ) {
         return $Items.Names | Sort-object -unique
@@ -405,13 +423,8 @@ function WriteJsonLog {
         if( -not $script:moduleConfig.SuperVerbose) {
             return
         }
-        $Now = [Datetime]::Now
-        $Data =
-            $items | ConvertTo-Json -Depth 2
-
-        # $logLine =
-            # Join-String -inp @( $Data )  -op 'JSON:{ ' -os ' }:JSON'
-            #     | Join-String -op "[$Now] " -sep ' '
+        $Now     = [Datetime]::Now
+        $Data    = $items | ConvertTo-Json -Depth 2
         $logLine =
             $Data
                 | Join-String -op 'JSON:{ ' -os ' }:JSON'
@@ -428,23 +441,26 @@ class NamedUnicodeCompleter : IArgumentCompleter {
     hidden [hashtable]$Options = @{
         CompleteAs = 'Name'
     }
+    hidden [string]$CompleteAs = 'Name'
     # [bool]$ExcludeDateTimeFormatInfoPatterns = $false
-    # [bool]$IncludeFromDateTimeFormatInfo = $true
     # NamedUnicodeCompleter([int] $from, [int] $to, [int] $step) {
     NamedUnicodeCompleter( ) {
         $This.Options = @{
             # ExcludeDateTimeFormatInfoPatterns = $true
+            CompleteAs = 'Name'
         }
 
         $this.Options
             | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
     }
     # NamedUnicodeCompleter( $options ) {
-    NamedUnicodeCompleter( $SomeParam = $false ) {
+    # NamedUnicodeCompleter( $SomeParam = $false ) {
+    NamedUnicodeCompleter( [string]$CompleteAs = 'Name'  ) {
         # $this.SomeParam = $SomeParam
-        $This.Options.SomeParam = $SomeParam
+        $This.Options.CompleteAs = $CompleteAs
+        $This.CompleteAs = $CompleteAs
         $this.Options
-            | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor'
+            | WriteJsonLog -Text '🚀 [NamedUnicodeCompleter]::ctor | SomeParam'
 
         $PSCommandPath | Join-String -op 'not finished: Exclude property is not implemented yet,  ' | write-warning
 
@@ -486,6 +502,7 @@ class NamedUnicodeCompleter : IArgumentCompleter {
             # IncludeAllDateTimePatterns = $true
             # IncludeFromDateTimeFormatInfo = $true
         }
+        # todo: pass query string filter
         [List[CompletionResult]]$found = @(
             nUni.__SearchNamedMetadata -InputText ''
                 | % AsCompletionResult
@@ -499,14 +516,9 @@ class NamedUnicodeCompletionsAttribute : ArgumentCompleterAttribute, IArgumentCo
     <#
     .example
         Pwsh> [NamedUnicodeCompletionsAttribute]::new()
-        Pwsh> [NamedUnicodeCompletionsAttribute]::new( @{ 'stuff' = 'far' } )
+        Pwsh> [NamedUnicodeCompletionsAttribute]::new( CompleteAs = 'Name|Value' )
     #>
     [hashtable]$Options = @{}
-    # [int] $From
-    # [int] $To
-    # [int] $Step
-
-    # NamedUnicodeCompletionsAttribute( $options[int] $from, [int] $to, [int] $step) {
     NamedUnicodeCompletionsAttribute() {
         $this.Options = @{
             CompleteAs = 'Name'
@@ -514,23 +526,15 @@ class NamedUnicodeCompletionsAttribute : ArgumentCompleterAttribute, IArgumentCo
         $this.Options
             | WriteJsonLog -Text  '🚀NamedUnicodeCompletionsAttribute::new()'
     }
-    # NamedUnicodeCompletionsAttribute( $ExcludeDateTimeFormatInfoPatterns = $false ) {
     NamedUnicodeCompletionsAttribute( [string]$CompleteAs = 'Name' ) {
-        # $this.Options = $Options ?? @{}
-        # $this.Options = $Options ?? @{
-        #     ExcludeDateTimeFormatInfoPatterns = $false
-        # }
         $this.Options.CompleteAs = $CompleteAs
-
         $this.Options
             | WriteJsonLog -Text  '🚀NamedUnicodeCompletionsAttribute::new | completeAs'
-        # $this.Options.ExcludeDateTimeFormatInfoPatterns = $ExcludeDateTimeFormatInfoPatterns
     }
 
     [IArgumentCompleter] Create() {
         # return [NamedUnicodeCompleter]::new($this.From, $this.To, $this.Step)
         # return [NamedUnicodeCompleter]::new( @{} )
-
         '🚀NamedUnicodeCompletionsAttribute..Create()'
             | WriteJsonLog -PassThru
             # | .Log -Passthru
@@ -555,6 +559,8 @@ function nUni.GetNamedText {
         saved aliases that map directly to text or a sequence
     .description
         aliass 'Uni.Str' and 'UniStr' automatically add -AsText as a default arg
+    .EXAMPLE
+        Uni.Str Null.Symbol
 
     #>
     [CmdletBinding(DefaultParameterSetName='QueryAsName')]
@@ -573,13 +579,14 @@ function nUni.GetNamedText {
 
         #     'ETX', 'EndOf.Text'
         # )]
-        [NamedUnicodeCompletionsAttribute( CompleteAs = 'Text')]
+        [NamedUnicodeCompletionsAttribute()]
         [Alias('Echo')]
         [Parameter(Mandatory, Position = 0, ParameterSetName ='QueryAsEchoValue')]
         [string]$InputRune,
 
 
-        [NamedUnicodeCompletionsAttribute( CompleteAs = 'ShortName' )]
+        [NamedUnicodeCompletionsAttribute()]
+        # [NamedUnicodeCompletionsAttribute( CompleteAs = 'ShortName' )]
         [Alias('Name', 'Query')]
         [Parameter(Mandatory, Position = 0, ParameterSetName = 'QueryAsName')]
         [string]
@@ -589,6 +596,9 @@ function nUni.GetNamedText {
         [switch]$AsText
 
     )
+    if($PSCmdlet.ParameterSetName -eq 'QueryAsEchoValue'){
+        write-warning 'nyi: will echo whichever string is passed to it, coming from completer'
+    }
     if($PSCmdlet.MyInvocation.InvocationName -match 'Uni.*Str') {
         $AsText = $True
     }
